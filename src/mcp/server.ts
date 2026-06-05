@@ -27,12 +27,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       name: "get_latest_vitals",
       description:
         "Get the most recent reading for each vital sign: heart rate, resting heart rate, HRV, blood oxygen, blood pressure systolic, blood pressure diastolic.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          userId: { type: "string", description: "User ID (optional, defaults to DEFAULT_USER_ID env var)" },
-        },
-      },
+      inputSchema: { type: "object", properties: {} },
     },
     {
       name: "get_vitals",
@@ -40,7 +35,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: "object",
         properties: {
-          userId: { type: "string" },
           type: {
             type: "string",
             enum: ["heart_rate", "resting_heart_rate", "hrv", "blood_oxygen", "blood_pressure_systolic", "blood_pressure_diastolic"],
@@ -59,7 +53,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: "object",
         properties: {
-          userId: { type: "string" },
           from: { type: "string", description: "ISO 8601 start date" },
           to: { type: "string", description: "ISO 8601 end date" },
           days: { type: "number", description: "Number of past days to fetch (default 7)" },
@@ -72,7 +65,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: "object",
         properties: {
-          userId: { type: "string" },
           workoutType: { type: "string", description: "Filter by type e.g. 'Running', 'Cycling'" },
           from: { type: "string", description: "ISO 8601 start date" },
           to: { type: "string", description: "ISO 8601 end date" },
@@ -87,7 +79,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: "object",
         properties: {
-          userId: { type: "string" },
           from: { type: "string", description: "ISO 8601 start date" },
           to: { type: "string", description: "ISO 8601 end date" },
           days: { type: "number", description: "Number of past days (default 7)" },
@@ -102,7 +93,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 server.setRequestHandler(CallToolRequestSchema, async (req) => {
   await connectDB();
   const args = (req.params.arguments ?? {}) as Record<string, unknown>;
-  const userId = (args.userId as string | undefined) ?? DEFAULT_USER;
+  // userId is always the server-configured user — callers cannot override it
+  const userId = DEFAULT_USER;
 
   let result: unknown;
 

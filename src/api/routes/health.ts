@@ -23,10 +23,15 @@ function toMidnightUTC(dateStr: string): Date {
   return d;
 }
 
+// userId must be alphanumeric + dash/underscore, max 64 chars
+const userId = z.string().min(1).max(64).regex(/^[\w-]+$/);
+const source = z.string().max(128).optional();
+const MAX_RECORDS = 500;
+
 // ── Vitals ────────────────────────────────────────────────────────────────────
 
 const VitalPayload = z.object({
-  userId: z.string().min(1),
+  userId,
   records: z.array(
     z.object({
       type: z.enum([
@@ -38,18 +43,18 @@ const VitalPayload = z.object({
         "blood_pressure_diastolic",
       ]),
       value: z.number(),
-      unit: z.string(),
+      unit: z.string().max(32),
       startDate: z.string().datetime(),
       endDate: z.string().datetime(),
-      source: z.string().optional(),
+      source,
     })
-  ),
+  ).max(MAX_RECORDS),
 });
 
 healthRouter.post("/vitals", async (req: Request, res: Response) => {
   const parsed = VitalPayload.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.flatten() });
+    res.status(400).json({ error: "Invalid request body" });
     return;
   }
   const { userId, records } = parsed.data;
@@ -73,7 +78,7 @@ healthRouter.post("/vitals", async (req: Request, res: Response) => {
 // ── Sleep ─────────────────────────────────────────────────────────────────────
 
 const SleepPayload = z.object({
-  userId: z.string().min(1),
+  userId,
   records: z.array(
     z.object({
       stage: z.enum([
@@ -87,15 +92,15 @@ const SleepPayload = z.object({
       startDate: z.string().datetime(),
       endDate: z.string().datetime(),
       durationSeconds: z.number(),
-      source: z.string().optional(),
+      source,
     })
-  ),
+  ).max(MAX_RECORDS),
 });
 
 healthRouter.post("/sleep", async (req: Request, res: Response) => {
   const parsed = SleepPayload.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.flatten() });
+    res.status(400).json({ error: "Invalid request body" });
     return;
   }
   const { userId, records } = parsed.data;
@@ -119,25 +124,25 @@ healthRouter.post("/sleep", async (req: Request, res: Response) => {
 // ── Workouts ──────────────────────────────────────────────────────────────────
 
 const WorkoutPayload = z.object({
-  userId: z.string().min(1),
+  userId,
   records: z.array(
     z.object({
-      workoutType: z.string(),
+      workoutType: z.string().max(64),
       startDate: z.string().datetime(),
       endDate: z.string().datetime(),
       durationSeconds: z.number(),
       totalEnergyBurnedKcal: z.number().optional().default(0),
       totalDistanceMeters: z.number().optional().default(0),
       averageHeartRate: z.number().optional(),
-      source: z.string().optional(),
+      source,
     })
-  ),
+  ).max(MAX_RECORDS),
 });
 
 healthRouter.post("/workouts", async (req: Request, res: Response) => {
   const parsed = WorkoutPayload.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.flatten() });
+    res.status(400).json({ error: "Invalid request body" });
     return;
   }
   const { userId, records } = parsed.data;
@@ -161,7 +166,7 @@ healthRouter.post("/workouts", async (req: Request, res: Response) => {
 // ── Activity ──────────────────────────────────────────────────────────────────
 
 const ActivityPayload = z.object({
-  userId: z.string().min(1),
+  userId,
   records: z.array(
     z.object({
       date: z.string().datetime(),
@@ -170,15 +175,15 @@ const ActivityPayload = z.object({
       activeEnergyKcal: z.number().optional().default(0),
       exerciseMinutes: z.number().optional().default(0),
       flightsClimbed: z.number().optional().default(0),
-      source: z.string().optional(),
+      source,
     })
-  ),
+  ).max(MAX_RECORDS),
 });
 
 healthRouter.post("/activity", async (req: Request, res: Response) => {
   const parsed = ActivityPayload.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.flatten() });
+    res.status(400).json({ error: "Invalid request body" });
     return;
   }
   const { userId, records } = parsed.data;

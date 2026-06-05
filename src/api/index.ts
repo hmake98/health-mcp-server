@@ -20,11 +20,8 @@ export function createApp() {
 
   app.get("/health", (_req, res) => {
     const ready = mongoose.connection.readyState === 1;
-    if (!ready) {
-      res.status(503).json({ ok: false, db: "disconnected" });
-      return;
-    }
-    res.json({ ok: true, db: "connected" });
+    // Return 503 without DB details to avoid leaking infrastructure state
+    res.status(ready ? 200 : 503).json({ ok: ready });
   });
 
   app.use("/api/health", apiAuth, ingestLimit, healthRouter);
