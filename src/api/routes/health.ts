@@ -23,15 +23,12 @@ function toMidnightUTC(dateStr: string): Date {
   return d;
 }
 
-// userId must be alphanumeric + dash/underscore, max 64 chars
-const userId = z.string().min(1).max(64).regex(/^[\w-]+$/);
 const source = z.string().max(128).optional();
 const MAX_RECORDS = 500;
 
 // ── Vitals ────────────────────────────────────────────────────────────────────
 
 const VitalPayload = z.object({
-  userId,
   records: z.array(
     z.object({
       type: z.enum([
@@ -57,8 +54,8 @@ healthRouter.post("/vitals", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Invalid request body" });
     return;
   }
-  const { userId, records } = parsed.data;
-  const docs = records.map((r) => ({
+  const userId = req.user!.id;
+  const docs = parsed.data.records.map((r) => ({
     ...r,
     userId,
     startDate: new Date(r.startDate),
@@ -78,7 +75,6 @@ healthRouter.post("/vitals", async (req: Request, res: Response) => {
 // ── Sleep ─────────────────────────────────────────────────────────────────────
 
 const SleepPayload = z.object({
-  userId,
   records: z.array(
     z.object({
       stage: z.enum([
@@ -103,8 +99,8 @@ healthRouter.post("/sleep", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Invalid request body" });
     return;
   }
-  const { userId, records } = parsed.data;
-  const docs = records.map((r) => ({
+  const userId = req.user!.id;
+  const docs = parsed.data.records.map((r) => ({
     ...r,
     userId,
     startDate: new Date(r.startDate),
@@ -124,7 +120,6 @@ healthRouter.post("/sleep", async (req: Request, res: Response) => {
 // ── Workouts ──────────────────────────────────────────────────────────────────
 
 const WorkoutPayload = z.object({
-  userId,
   records: z.array(
     z.object({
       workoutType: z.string().max(64),
@@ -145,8 +140,8 @@ healthRouter.post("/workouts", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Invalid request body" });
     return;
   }
-  const { userId, records } = parsed.data;
-  const docs = records.map((r) => ({
+  const userId = req.user!.id;
+  const docs = parsed.data.records.map((r) => ({
     ...r,
     userId,
     startDate: new Date(r.startDate),
@@ -166,7 +161,6 @@ healthRouter.post("/workouts", async (req: Request, res: Response) => {
 // ── Activity ──────────────────────────────────────────────────────────────────
 
 const ActivityPayload = z.object({
-  userId,
   records: z.array(
     z.object({
       date: z.string().datetime(),
@@ -186,8 +180,8 @@ healthRouter.post("/activity", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Invalid request body" });
     return;
   }
-  const { userId, records } = parsed.data;
-  const ops = records.map((r) => ({
+  const userId = req.user!.id;
+  const ops = parsed.data.records.map((r) => ({
     updateOne: {
       filter: { userId, date: toMidnightUTC(r.date) },
       update: { $set: { ...r, userId, date: toMidnightUTC(r.date) } },

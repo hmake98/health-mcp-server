@@ -1,19 +1,29 @@
-import { timingSafeEqual } from "crypto";
 import { Request, Response, NextFunction } from "express";
+import { User } from "../../db/models/User.js";
 
-export function apiAuth(req: Request, res: Response, next: NextFunction): void {
-  const token = req.headers["x-api-key"];
-  const secret = process.env.API_SECRET!;
+declare module "express" {
+  interface Request {
+    user?: { id: string; email: string; name: string };
+  }
+}
 
-  // Use timing-safe comparison to prevent brute-force via response time
-  if (
-    !token ||
-    typeof token !== "string" ||
-    token.length !== secret.length ||
-    !timingSafeEqual(Buffer.from(token), Buffer.from(secret))
-  ) {
+export async function apiAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const key = req.headers["x-api-key"];
+  if (!key || typeof key !== "string") {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+
+  const user = await User.findOne(
+    { apiKey: key, active: true },
+    { _id: 1, email: 1, name: 1 }
+  ).lean();
+
+  if (!user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  req.user = { id: user._id.toString(), email: user.email, name: user.name };
   next();
 }

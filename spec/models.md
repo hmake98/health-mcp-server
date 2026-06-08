@@ -2,6 +2,22 @@
 
 MongoDB via Mongoose. All models use `{ timestamps: true }` (adds `createdAt`, `updatedAt`).
 
+## User
+
+Collection: `users`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `name` | String | Yes | trimmed |
+| `email` | String | Yes | unique, lowercased |
+| `passwordHash` | String | Yes | `salt:scrypt64` format |
+| `apiKey` | String | Yes | unique, HMAC-SHA256 signed with `API_SECRET` |
+| `active` | Boolean | No | default `true`; set `false` to revoke access |
+
+Indexes: `email` (unique) · `apiKey` (unique, used for every ingest auth lookup)
+
+---
+
 ## Vital
 
 Collection: `vitals`

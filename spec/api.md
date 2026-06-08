@@ -2,24 +2,64 @@
 
 Base: `http://localhost:$PORT`
 
-## Auth
+---
 
-All `/api/health/*` routes require:
+## Auth routes — no key required
+
+### POST /auth/register
+
+Create a new user. Returns the API key to use for all `/api/health/*` requests.
+
+**Body**
+```json
+{ "name": "Harsh", "email": "you@example.com", "password": "min8chars" }
 ```
-x-api-key: $API_SECRET
+
+**Response** `201`
+```json
+{ "id": "<userId>", "name": "Harsh", "email": "you@example.com", "apiKey": "<hex>" }
 ```
-Returns `401` if missing or wrong.
+
+**Errors** `400` invalid body · `409` email already registered
 
 ---
 
-## POST /api/health/vitals
+### POST /auth/login
+
+Sign in with email and password. Returns the same API key stored for the account.
+
+**Body**
+```json
+{ "email": "you@example.com", "password": "yourpassword" }
+```
+
+**Response** `200`
+```json
+{ "id": "<userId>", "name": "Harsh", "email": "you@example.com", "apiKey": "<hex>" }
+```
+
+**Errors** `400` invalid body · `401` wrong credentials or inactive account
+
+---
+
+## Health routes — API key required
+
+All `/api/health/*` routes require:
+```
+x-api-key: <apiKey from register or login>
+```
+Returns `401` if missing, wrong, or the account is inactive.  
+The `userId` stored on every health record is derived from the authenticated API key — it is not accepted in the request body.
+
+---
+
+### POST /api/health/vitals
 
 Bulk-insert vital sign records. Duplicate documents are silently skipped (`ordered: false`).
 
 **Body**
 ```json
 {
-  "userId": "string",
   "records": [
     {
       "type": "heart_rate | resting_heart_rate | hrv | blood_oxygen | blood_pressure_systolic | blood_pressure_diastolic",
@@ -37,14 +77,13 @@ Bulk-insert vital sign records. Duplicate documents are silently skipped (`order
 
 ---
 
-## POST /api/health/sleep
+### POST /api/health/sleep
 
 Bulk-insert sleep stage records. Duplicate documents are silently skipped.
 
 **Body**
 ```json
 {
-  "userId": "string",
   "records": [
     {
       "stage": "inBed | asleepUnspecified | awake | asleepDeep | asleepCore | asleepREM",
@@ -61,14 +100,13 @@ Bulk-insert sleep stage records. Duplicate documents are silently skipped.
 
 ---
 
-## POST /api/health/workouts
+### POST /api/health/workouts
 
 Bulk-insert workout records. Duplicate documents are silently skipped.
 
 **Body**
 ```json
 {
-  "userId": "string",
   "records": [
     {
       "workoutType": "Running",
@@ -88,14 +126,13 @@ Bulk-insert workout records. Duplicate documents are silently skipped.
 
 ---
 
-## POST /api/health/activity
+### POST /api/health/activity
 
 Upsert daily activity records by `(userId, date)`.
 
 **Body**
 ```json
 {
-  "userId": "string",
   "records": [
     {
       "date": "ISO 8601",
@@ -114,7 +151,7 @@ Upsert daily activity records by `(userId, date)`.
 
 ---
 
-## GET /health
+### GET /health
 
 Liveness check. No auth required.
 

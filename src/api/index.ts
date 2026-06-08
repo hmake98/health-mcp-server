@@ -4,10 +4,19 @@ import rateLimit from "express-rate-limit";
 import mongoose from "mongoose";
 import { apiAuth } from "./middleware/auth.js";
 import { healthRouter } from "./routes/health.js";
+import { authRouter } from "./routes/auth.js";
 
 const ingestLimit = rateLimit({
   windowMs: 60_000,
   max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests — slow down" },
+});
+
+const authLimit = rateLimit({
+  windowMs: 60_000,
+  max: 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests — slow down" },
@@ -20,10 +29,10 @@ export function createApp() {
 
   app.get("/health", (_req, res) => {
     const ready = mongoose.connection.readyState === 1;
-    // Return 503 without DB details to avoid leaking infrastructure state
     res.status(ready ? 200 : 503).json({ ok: ready });
   });
 
+  app.use("/auth", authLimit, authRouter);
   app.use("/api/health", apiAuth, ingestLimit, healthRouter);
   return app;
 }
