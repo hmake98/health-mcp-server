@@ -1,10 +1,12 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoose from "mongoose";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { apiAuth } from "./middleware/auth.js";
 import { healthRouter } from "./routes/health.js";
 import { authRouter } from "./routes/auth.js";
+import { createMcpServer } from "../mcp/create-server.js";
 
 const ingestLimit = rateLimit({
   windowMs: 60_000,
@@ -34,5 +36,17 @@ export function createApp() {
 
   app.use("/auth", authLimit, authRouter);
   app.use("/api/health", apiAuth, ingestLimit, healthRouter);
+
+  app.all("/mcp", apiAuth, async (req: Request, res: Response) => {
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    const server = createMcpServer();
+    await server.connect(transport);
+    res.on("close", () => {
+      transport.close().catch(console.error);
+      server.close().catch(console.error);
+    });
+    await transport.handleRequest(req, res, req.body);
+  });
+
   return app;
 }

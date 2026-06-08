@@ -55,6 +55,7 @@ Activity is upserted by `(userId, date)`; all other collections append.
   src/db/models/Vitals.ts
   src/db/models/Workout.ts
   src/index.ts
+  src/mcp/create-server.ts
   src/mcp/server.ts
   src/mcp/tools/activity.ts
   src/mcp/tools/sleep.ts
