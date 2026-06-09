@@ -7,22 +7,6 @@ import { Activity } from "../../db/models/Activity.js";
 
 export const healthRouter = Router();
 
-// insertMany with ordered:false throws BulkWriteError for duplicates.
-// Any other error (connection down, schema issue) is a real failure.
-function isBulkDuplicateError(err: unknown): boolean {
-  if (!err || typeof err !== "object") return false;
-  const e = err as Record<string, unknown>;
-  return Array.isArray(e.writeErrors) || e.code === 11000;
-}
-
-// Activity records arrive as full ISO datetimes but are keyed by calendar day.
-// Normalise to midnight UTC so the unique (userId, date) index upserts correctly.
-function toMidnightUTC(dateStr: string): Date {
-  const d = new Date(dateStr);
-  d.setUTCHours(0, 0, 0, 0);
-  return d;
-}
-
 const source = z.string().max(128).optional();
 const MAX_RECORDS = 500;
 
@@ -57,21 +41,27 @@ healthRouter.post("/vitals", async (req: Request, res: Response) => {
     return;
   }
   const userId = req.user!.id;
-  const docs = parsed.data.records.map((r) => ({
-    ...r,
-    userId,
-    startDate: new Date(r.startDate),
-    endDate: new Date(r.endDate),
+  const ops = parsed.data.records.map((r) => ({
+    updateOne: {
+      // Deduplicate by (userId, type, startDate) — same reading re-uploaded is a no-op
+      filter: { userId, type: r.type, startDate: new Date(r.startDate) },
+      update: {
+        $set: {
+          ...r,
+          userId,
+          startDate: new Date(r.startDate),
+          endDate: new Date(r.endDate),
+        },
+      },
+      upsert: true,
+    },
   }));
   try {
-    await Vital.insertMany(docs, { ordered: false });
-  } catch (err) {
-    if (!isBulkDuplicateError(err)) {
-      res.status(500).json({ error: "Database error" });
-      return;
-    }
+    const result = await Vital.bulkWrite(ops, { ordered: false });
+    res.json({ inserted: result.upsertedCount + result.modifiedCount });
+  } catch {
+    res.status(500).json({ error: "Database error" });
   }
-  res.json({ inserted: docs.length });
 });
 
 // ── Sleep ─────────────────────────────────────────────────────────────────────
@@ -102,21 +92,27 @@ healthRouter.post("/sleep", async (req: Request, res: Response) => {
     return;
   }
   const userId = req.user!.id;
-  const docs = parsed.data.records.map((r) => ({
-    ...r,
-    userId,
-    startDate: new Date(r.startDate),
-    endDate: new Date(r.endDate),
+  const ops = parsed.data.records.map((r) => ({
+    updateOne: {
+      // Deduplicate by (userId, stage, startDate) — same sleep segment re-uploaded is a no-op
+      filter: { userId, stage: r.stage, startDate: new Date(r.startDate) },
+      update: {
+        $set: {
+          ...r,
+          userId,
+          startDate: new Date(r.startDate),
+          endDate: new Date(r.endDate),
+        },
+      },
+      upsert: true,
+    },
   }));
   try {
-    await Sleep.insertMany(docs, { ordered: false });
-  } catch (err) {
-    if (!isBulkDuplicateError(err)) {
-      res.status(500).json({ error: "Database error" });
-      return;
-    }
+    const result = await Sleep.bulkWrite(ops, { ordered: false });
+    res.json({ inserted: result.upsertedCount + result.modifiedCount });
+  } catch {
+    res.status(500).json({ error: "Database error" });
   }
-  res.json({ inserted: docs.length });
 });
 
 // ── Workouts ──────────────────────────────────────────────────────────────────
@@ -143,24 +139,36 @@ healthRouter.post("/workouts", async (req: Request, res: Response) => {
     return;
   }
   const userId = req.user!.id;
-  const docs = parsed.data.records.map((r) => ({
-    ...r,
-    userId,
-    startDate: new Date(r.startDate),
-    endDate: new Date(r.endDate),
+  const ops = parsed.data.records.map((r) => ({
+    updateOne: {
+      // Deduplicate by (userId, startDate) — each workout has a unique start time
+      filter: { userId, startDate: new Date(r.startDate) },
+      update: {
+        $set: {
+          ...r,
+          userId,
+          startDate: new Date(r.startDate),
+          endDate: new Date(r.endDate),
+        },
+      },
+      upsert: true,
+    },
   }));
   try {
-    await Workout.insertMany(docs, { ordered: false });
-  } catch (err) {
-    if (!isBulkDuplicateError(err)) {
-      res.status(500).json({ error: "Database error" });
-      return;
-    }
+    const result = await Workout.bulkWrite(ops, { ordered: false });
+    res.json({ inserted: result.upsertedCount + result.modifiedCount });
+  } catch {
+    res.status(500).json({ error: "Database error" });
   }
-  res.json({ inserted: docs.length });
 });
 
 // ── Activity ──────────────────────────────────────────────────────────────────
+
+function toMidnightUTC(dateStr: string): Date {
+  const d = new Date(dateStr);
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+}
 
 const ActivityPayload = z.object({
   records: z.array(
@@ -197,4 +205,17 @@ healthRouter.post("/activity", async (req: Request, res: Response) => {
     return;
   }
   res.json({ upserted: ops.length });
+});
+
+// ── Clear all health data for user ────────────────────────────────────────────
+
+healthRouter.delete("/all", async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  await Promise.all([
+    Vital.deleteMany({ userId }),
+    Sleep.deleteMany({ userId }),
+    Workout.deleteMany({ userId }),
+    Activity.deleteMany({ userId }),
+  ]);
+  res.json({ ok: true });
 });
