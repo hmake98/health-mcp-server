@@ -45,11 +45,17 @@ Activity is upserted by `(userId, date)`; all other collections append.
 
 <!-- FILE_TREE_START -->
   src/api/index.ts
+  src/api/lib/jwt.ts
+  src/api/lib/password.ts
   src/api/middleware/auth.ts
   src/api/routes/auth.ts
   src/api/routes/health.ts
+  src/api/routes/oauth.ts
   src/db/connection.ts
   src/db/models/Activity.ts
+  src/db/models/OAuthClient.ts
+  src/db/models/OAuthCode.ts
+  src/db/models/OAuthToken.ts
   src/db/models/Sleep.ts
   src/db/models/User.ts
   src/db/models/Vitals.ts

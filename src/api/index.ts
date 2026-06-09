@@ -6,6 +6,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { apiAuth } from "./middleware/auth.js";
 import { healthRouter } from "./routes/health.js";
 import { authRouter } from "./routes/auth.js";
+import { oauthRouter, oauthMetadata } from "./routes/oauth.js";
 import { createMcpServer } from "../mcp/create-server.js";
 
 const ingestLimit = rateLimit({
@@ -26,15 +27,21 @@ const authLimit = rateLimit({
 
 export function createApp() {
   const app = express();
-  app.use(helmet());
+  app.use(helmet({ contentSecurityPolicy: false }));
   app.use(express.json({ limit: "5mb" }));
+  app.use(express.urlencoded({ extended: false }));
 
   app.get("/health", (_req, res) => {
     const ready = mongoose.connection.readyState === 1;
     res.status(ready ? 200 : 503).json({ ok: ready });
   });
 
+  app.get("/.well-known/oauth-authorization-server", (req, res) => {
+    res.json(oauthMetadata(req));
+  });
+
   app.use("/auth", authLimit, authRouter);
+  app.use("/oauth", authLimit, oauthRouter);
   app.use("/api/health", apiAuth, ingestLimit, healthRouter);
 
   app.all("/mcp", apiAuth, async (req: Request, res: Response) => {

@@ -1,28 +1,14 @@
 import { Router, Request, Response } from "express";
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
+import { createHmac, randomBytes as cryptoRandomBytes } from "crypto";
 import { z } from "zod";
 import { User } from "../../db/models/User.js";
+import { hashPassword, verifyPassword } from "../lib/password.js";
 
 export const authRouter = Router();
 
-function hashPassword(password: string, salt: string): string {
-  return scryptSync(password, salt, 64).toString("hex");
-}
-
-function verifyPassword(password: string, stored: string): boolean {
-  const colonIdx = stored.indexOf(":");
-  const salt = stored.slice(0, colonIdx);
-  const hash = stored.slice(colonIdx + 1);
-  const input = hashPassword(password, salt);
-  const a = Buffer.from(hash, "hex");
-  const b = Buffer.from(input, "hex");
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
-}
-
 // HMAC-signs a random nonce with API_SECRET so keys can't be forged without the secret.
 function generateApiKey(): string {
-  const nonce = randomBytes(16).toString("hex");
+  const nonce = cryptoRandomBytes(16).toString("hex");
   return createHmac("sha256", process.env.API_SECRET!)
     .update(nonce)
     .digest("hex");
@@ -54,8 +40,7 @@ authRouter.post("/register", async (req: Request, res: Response) => {
     return;
   }
 
-  const salt = randomBytes(16).toString("hex");
-  const passwordHash = `${salt}:${hashPassword(password, salt)}`;
+  const passwordHash = hashPassword(password);
   const apiKey = generateApiKey();
 
   const user = await User.create({ name, email, passwordHash, apiKey });

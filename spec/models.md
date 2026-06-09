@@ -93,3 +93,55 @@ Collection: `activities`
 | `source` | String | No | default `"Apple Health"` |
 
 **Unique index**: `(userId, date)` — one record per user per day; writes use `upsert`.
+
+---
+
+## OAuthClient
+
+Collection: `oauthclients`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `clientId` | String | Yes | unique, 32-char hex |
+| `clientSecret` | String | No | null for public clients |
+| `name` | String | Yes | display name shown on authorize page |
+| `redirectUris` | String[] | Yes | allowed redirect URIs |
+| `scopes` | String[] | No | default `["health:read"]` |
+
+---
+
+## OAuthCode
+
+Collection: `oauthcodes`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `code` | String | Yes | unique, 64-char hex |
+| `clientId` | String | Yes | |
+| `userId` | String | Yes | |
+| `redirectUri` | String | Yes | |
+| `scope` | String | Yes | |
+| `codeChallenge` | String | No | base64url(sha256(verifier)) |
+| `codeChallengeMethod` | String | No | `S256` |
+| `expiresAt` | Date | Yes | 10 min from creation |
+| `used` | Boolean | No | default `false`; codes are single-use |
+
+TTL index on `expiresAt` — MongoDB auto-deletes expired codes.
+
+---
+
+## OAuthToken
+
+Collection: `oauthtokens`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `refreshToken` | String | Yes | unique, 64-char hex opaque token |
+| `clientId` | String | Yes | |
+| `userId` | String | Yes | |
+| `scope` | String | Yes | |
+| `expiresAt` | Date | Yes | 30 days from creation |
+| `revoked` | Boolean | No | default `false` |
+
+TTL index on `expiresAt` — MongoDB auto-deletes expired tokens.  
+Access tokens are self-contained HS256 JWTs — not stored in MongoDB.

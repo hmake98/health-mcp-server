@@ -33,7 +33,7 @@ export function createMcpServer(): Server {
           properties: {
             type: {
               type: "string",
-              enum: ["heart_rate", "resting_heart_rate", "hrv", "blood_oxygen", "blood_pressure_systolic", "blood_pressure_diastolic"],
+              enum: ["heart_rate", "resting_heart_rate", "hrv", "blood_oxygen", "blood_pressure_systolic", "blood_pressure_diastolic", "respiratory_rate", "walking_heart_rate_average"],
               description: "Filter by vital type",
             },
             from: { type: "string", description: "ISO 8601 start date" },

@@ -5,8 +5,10 @@ const META: Record<VitalType, { label: string; unit: string; normalRange: string
   resting_heart_rate:      { label: "Resting Heart Rate",       unit: "bpm",   normalRange: "40–80 bpm (lower is generally better for fit individuals)" },
   hrv:                     { label: "Heart Rate Variability",   unit: "ms",    normalRange: "Highly individual — higher is generally better; compare to personal baseline" },
   blood_oxygen:            { label: "Blood Oxygen (SpO2)",      unit: "%",     normalRange: "95–100%" },
-  blood_pressure_systolic: { label: "Blood Pressure Systolic",  unit: "mmHg",  normalRange: "< 120 mmHg" },
-  blood_pressure_diastolic:{ label: "Blood Pressure Diastolic", unit: "mmHg",  normalRange: "< 80 mmHg" },
+  blood_pressure_systolic:    { label: "Blood Pressure Systolic",       unit: "mmHg",       normalRange: "< 120 mmHg" },
+  blood_pressure_diastolic:   { label: "Blood Pressure Diastolic",      unit: "mmHg",       normalRange: "< 80 mmHg" },
+  respiratory_rate:           { label: "Respiratory Rate",              unit: "breaths/min", normalRange: "12–20 breaths/min" },
+  walking_heart_rate_average: { label: "Walking Heart Rate Average",    unit: "bpm",        normalRange: "Varies by age and fitness" },
 };
 
 function classify(type: VitalType, value: number): string {
@@ -37,6 +39,16 @@ function classify(type: VitalType, value: number): string {
       if (value < 80)  return "normal";
       if (value < 90)  return "elevated";
       return "high — stage 2 hypertension";
+    case "respiratory_rate":
+      if (value < 12) return "below normal — possible bradypnea";
+      if (value <= 20) return "normal";
+      return "elevated — possible tachypnea";
+    case "walking_heart_rate_average":
+      if (value < 60) return "low";
+      if (value <= 100) return "normal";
+      return "elevated";
+    default:
+      return "no classification available";
   }
 }
 

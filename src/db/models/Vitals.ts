@@ -6,7 +6,9 @@ export type VitalType =
   | "hrv"
   | "blood_oxygen"
   | "blood_pressure_systolic"
-  | "blood_pressure_diastolic";
+  | "blood_pressure_diastolic"
+  | "respiratory_rate"
+  | "walking_heart_rate_average";
 
 export interface IVital extends Document {
   userId: string;

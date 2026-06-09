@@ -38,6 +38,8 @@ const VitalPayload = z.object({
         "blood_oxygen",
         "blood_pressure_systolic",
         "blood_pressure_diastolic",
+        "respiratory_rate",
+        "walking_heart_rate_average",
       ]),
       value: z.number(),
       unit: z.string().max(32),
