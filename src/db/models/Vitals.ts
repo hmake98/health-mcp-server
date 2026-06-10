@@ -33,6 +33,8 @@ const VitalSchema = new Schema<IVital>(
   { timestamps: true }
 );
 
+// Unique constraint mirrors the upsert filter in the ingest route.
+VitalSchema.index({ userId: 1, type: 1, startDate: 1 }, { unique: true });
 VitalSchema.index({ userId: 1, type: 1, startDate: -1 });
 
 export const Vital = model<IVital>("Vital", VitalSchema);

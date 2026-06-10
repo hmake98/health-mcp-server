@@ -7,6 +7,13 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
 // Stages that represent actual sleep (not just time in bed)
 const SLEEP_STAGES = new Set(["asleepDeep", "asleepREM", "asleepCore", "asleepUnspecified"]);
 
+// Shift by 12 h so the grouping boundary falls at noon UTC instead of midnight UTC.
+// For IST (UTC+5:30) users this puts the boundary at 5:30 pm IST — well outside any
+// normal sleep window — so a continuous overnight session is never split across two dates.
+// The returned date represents the evening the sleep session began (standard convention).
+const sleepNightDate = (d: Date) =>
+  new Date(d.getTime() - 12 * 3600000).toISOString().slice(0, 10);
+
 export async function getSleepSummary(args: {
   userId: string;
   from?: string;
@@ -18,22 +25,26 @@ export async function getSleepSummary(args: {
     : new Date(Date.now() - (args.days ?? 7) * 86400000);
   const to = args.to ? new Date(args.to) : new Date();
 
+  // Extend lookback by 12 h so that early-morning stages belonging to the
+  // first night in range aren't cut off by the shifted boundary.
+  const queryFrom = new Date(from.getTime() - 12 * 3600000);
+
   const records = await Sleep.find({
     userId: args.userId,
-    startDate: { $gte: from, $lte: to },
+    startDate: { $gte: queryFrom, $lte: to },
   })
     .sort({ startDate: 1 })
     .select("stage startDate durationSeconds")
     .lean();
 
-  // Group by calendar date. Keep inBed separate to avoid double-counting.
+  // Group by sleep-night date. Keep inBed separate to avoid double-counting.
   const byDate: Record<string, {
     stages: Record<string, number>;
     inBedSeconds: number;
   }> = {};
 
   for (const r of records) {
-    const day = r.startDate.toISOString().slice(0, 10);
+    const day = sleepNightDate(r.startDate);
     if (!byDate[day]) byDate[day] = { stages: {}, inBedSeconds: 0 };
 
     if (r.stage === "inBed") {

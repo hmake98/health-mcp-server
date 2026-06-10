@@ -27,6 +27,9 @@ const WorkoutSchema = new Schema<IWorkout>(
   { timestamps: true }
 );
 
+// Unique constraint mirrors the upsert filter in the ingest route.
+// Each workout has a unique start time per user.
+WorkoutSchema.index({ userId: 1, startDate: 1 }, { unique: true });
 WorkoutSchema.index({ userId: 1, startDate: -1 });
 
 export const Workout = model<IWorkout>("Workout", WorkoutSchema);

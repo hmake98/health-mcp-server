@@ -23,6 +23,9 @@ const SleepSchema = new Schema<ISleep>(
   { timestamps: true }
 );
 
+// Unique constraint mirrors the upsert filter in the ingest route.
+// Prevents duplicate stage segments for the same user/stage/time even under concurrent writes.
+SleepSchema.index({ userId: 1, stage: 1, startDate: 1 }, { unique: true });
 SleepSchema.index({ userId: 1, startDate: -1 });
 
 export const Sleep = model<ISleep>("Sleep", SleepSchema);
