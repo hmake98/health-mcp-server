@@ -6,6 +6,7 @@ import { getSleepSummary } from "./tools/sleep.js";
 import { getWorkouts } from "./tools/workouts.js";
 import { getActivity } from "./tools/activity.js";
 import { getHealthCoachingSnapshot } from "./tools/coaching.js";
+import { generateHealthReport } from "./tools/report.js";
 
 export function createMcpServer(): McpServer {
   const DEFAULT_USER = process.env.DEFAULT_USER_ID ?? "default";
@@ -36,6 +37,26 @@ export function createMcpServer(): McpServer {
   );
 
   server.registerTool(
+    "generate_health_report",
+    {
+      description:
+        "Generate a comprehensive daily health report covering all systems. " +
+        "Call this when the user asks for a full health report, health summary, body overview, or 'how am I doing overall'. " +
+        "Returns structured sections — cardiovascular, sleep, fitness/activity, recovery — each with data, baselines, and trends. " +
+        "Also returns reportInstructions telling you exactly how to narrate each section with specific numbers. " +
+        "Do NOT call other tools alongside this one for report requests — this tool already fetches everything.",
+      inputSchema: {
+        date: z.string().optional().describe("ISO 8601 date for the report (default: today)"),
+      },
+    },
+    async (args) => {
+      await connectDB();
+      const result = await generateHealthReport({ userId: DEFAULT_USER, ...args });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.registerTool(
     "get_latest_vitals",
     {
       description:
@@ -57,7 +78,7 @@ export function createMcpServer(): McpServer {
         type: z.enum([
           "heart_rate", "resting_heart_rate", "hrv", "blood_oxygen",
           "blood_pressure_systolic", "blood_pressure_diastolic",
-          "respiratory_rate", "walking_heart_rate_average",
+          "respiratory_rate", "walking_heart_rate_average", "vo2_max",
         ]).optional().describe("Filter by vital type"),
         from: z.string().optional().describe("ISO 8601 start date"),
         to:   z.string().optional().describe("ISO 8601 end date"),

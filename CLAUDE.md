@@ -65,6 +65,7 @@ Activity is upserted by `(userId, date)`; all other collections append.
   src/mcp/server.ts
   src/mcp/tools/activity.ts
   src/mcp/tools/coaching.ts
+  src/mcp/tools/report.ts
   src/mcp/tools/sleep.ts
   src/mcp/tools/vitals.ts
   src/mcp/tools/workouts.ts
