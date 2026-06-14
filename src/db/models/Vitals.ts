@@ -8,7 +8,8 @@ export type VitalType =
   | "blood_pressure_systolic"
   | "blood_pressure_diastolic"
   | "respiratory_rate"
-  | "walking_heart_rate_average";
+  | "walking_heart_rate_average"
+  | "vo2_max";
 
 export interface IVital extends Document {
   userId: string;

@@ -1,14 +1,15 @@
 import { Vital, VitalType } from "../../db/models/Vitals.js";
 
 const META: Record<VitalType, { label: string; unit: string; normalRange: string }> = {
-  heart_rate:              { label: "Heart Rate",               unit: "bpm",   normalRange: "60–100 bpm" },
-  resting_heart_rate:      { label: "Resting Heart Rate",       unit: "bpm",   normalRange: "40–80 bpm (lower is generally better for fit individuals)" },
-  hrv:                     { label: "Heart Rate Variability",   unit: "ms",    normalRange: "Highly individual — higher is generally better; compare to personal baseline" },
-  blood_oxygen:            { label: "Blood Oxygen (SpO2)",      unit: "%",     normalRange: "95–100%" },
-  blood_pressure_systolic:    { label: "Blood Pressure Systolic",       unit: "mmHg",       normalRange: "< 120 mmHg" },
-  blood_pressure_diastolic:   { label: "Blood Pressure Diastolic",      unit: "mmHg",       normalRange: "< 80 mmHg" },
-  respiratory_rate:           { label: "Respiratory Rate",              unit: "breaths/min", normalRange: "12–20 breaths/min" },
-  walking_heart_rate_average: { label: "Walking Heart Rate Average",    unit: "bpm",        normalRange: "Varies by age and fitness" },
+  heart_rate:              { label: "Heart Rate",               unit: "bpm",        normalRange: "60–100 bpm" },
+  resting_heart_rate:      { label: "Resting Heart Rate",       unit: "bpm",        normalRange: "40–80 bpm (lower is generally better for fit individuals)" },
+  hrv:                     { label: "Heart Rate Variability",   unit: "ms",         normalRange: "Highly individual — higher is generally better; compare to personal baseline" },
+  blood_oxygen:            { label: "Blood Oxygen (SpO2)",      unit: "%",          normalRange: "95–100%" },
+  blood_pressure_systolic:    { label: "Blood Pressure Systolic",    unit: "mmHg",        normalRange: "< 120 mmHg" },
+  blood_pressure_diastolic:   { label: "Blood Pressure Diastolic",   unit: "mmHg",        normalRange: "< 80 mmHg" },
+  respiratory_rate:           { label: "Respiratory Rate",           unit: "breaths/min", normalRange: "12–20 breaths/min" },
+  walking_heart_rate_average: { label: "Walking Heart Rate Average", unit: "bpm",         normalRange: "Varies by age and fitness — lower indicates better cardiovascular efficiency" },
+  vo2_max:                    { label: "VO2 Max (Cardio Fitness)",   unit: "mL/min/kg",   normalRange: "≥ 45 is above average for most adults; elite endurance athletes > 60" },
 };
 
 function classify(type: VitalType, value: number): string {
@@ -47,6 +48,13 @@ function classify(type: VitalType, value: number): string {
       if (value < 60) return "low";
       if (value <= 100) return "normal";
       return "elevated";
+    case "vo2_max":
+      if (value < 30) return "poor — significantly below average";
+      if (value < 38) return "below average";
+      if (value < 45) return "average";
+      if (value < 52) return "above average — good cardiovascular fitness";
+      if (value < 60) return "excellent";
+      return "superior — elite endurance level";
     default:
       return "no classification available";
   }
@@ -56,6 +64,7 @@ export async function getLatestVitals(args: { userId: string }) {
   const types: VitalType[] = [
     "heart_rate", "resting_heart_rate", "hrv", "blood_oxygen",
     "blood_pressure_systolic", "blood_pressure_diastolic",
+    "walking_heart_rate_average", "vo2_max",
   ];
 
   const readings = await Promise.all(
